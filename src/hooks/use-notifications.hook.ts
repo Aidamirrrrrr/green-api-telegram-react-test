@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { ApiError, type GreenApiClient } from 'services/green-api.service';
 import { parseNotification, type IncomingEvent } from 'utils/notification.utils';
@@ -26,6 +26,11 @@ export function useNotifications(
   onEvent: (event: IncomingEvent) => void
 ): ConnectionStatus {
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
+  const handlerRef = useRef(onEvent);
+
+  useEffect(() => {
+    handlerRef.current = onEvent;
+  }, [onEvent]);
 
   useEffect(() => {
     const abort = new AbortController();
@@ -42,7 +47,7 @@ export function useNotifications(
           if (!notification) continue;
 
           const event = parseNotification(notification.body);
-          if (event) onEvent(event);
+          if (event) handlerRef.current(event);
           await client.deleteNotification(notification.receiptId);
         } catch (e) {
           if (signal.aborted) return;
@@ -58,7 +63,7 @@ export function useNotifications(
     })();
 
     return () => abort.abort();
-  }, [client, onEvent]);
+  }, [client]);
 
   return status;
 }

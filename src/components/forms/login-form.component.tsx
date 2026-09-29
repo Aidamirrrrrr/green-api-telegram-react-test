@@ -6,7 +6,7 @@ import type { Credentials } from 'types';
 
 interface Props {
   initial?: Credentials | null;
-  onLogin: (creds: Credentials) => void;
+  onLogin: (creds: Credentials, remember: boolean) => void;
 }
 
 const DEFAULT_URL = import.meta.env.VITE_GREEN_API_URL || 'https://api.green-api.com';
@@ -15,6 +15,7 @@ function LoginForm({ initial, onLogin }: Props) {
   const [apiUrl, setApiUrl] = useState(initial?.apiUrl ?? DEFAULT_URL);
   const [idInstance, setIdInstance] = useState(initial?.idInstance ?? '');
   const [apiTokenInstance, setApiTokenInstance] = useState(initial?.apiTokenInstance ?? '');
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -39,7 +40,7 @@ function LoginForm({ initial, onLogin }: Props) {
         );
         return;
       }
-      onLogin(creds);
+      onLogin(creds, remember);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Не удалось проверить инстанс.');
     } finally {
@@ -95,6 +96,15 @@ function LoginForm({ initial, onLogin }: Props) {
             spellCheck={false}
             required
           />
+        </label>
+
+        <label className="login__remember">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
+          Запомнить на этом устройстве
         </label>
 
         {error && (

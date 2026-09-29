@@ -4,36 +4,57 @@ import type { Credentials } from 'types';
 const CREDS_KEY = 'green-chat:credentials';
 const chatKey = (idInstance: string) => `green-chat:state:${idInstance}`;
 
-function read<T>(key: string): T | null {
+type StorageKind = 'local' | 'session';
+
+function getStorage(kind: StorageKind): Storage | null {
   try {
-    const raw = localStorage.getItem(key);
+    return kind === 'local' ? window.localStorage : window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function read<T>(kind: StorageKind, key: string): T | null {
+  try {
+    const raw = getStorage(kind)?.getItem(key);
     return raw ? (JSON.parse(raw) as T) : null;
   } catch {
     return null;
   }
 }
 
-function write(key: string, value: unknown): boolean {
+function write(kind: StorageKind, key: string, value: unknown): boolean {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    getStorage(kind)?.setItem(key, JSON.stringify(value));
     return true;
   } catch {
     return false;
   }
 }
 
-export const loadCredentials = () => read<Credentials>(CREDS_KEY);
-export const saveCredentials = (creds: Credentials) => write(CREDS_KEY, creds);
-export const clearCredentials = () => {
+function remove(kind: StorageKind, key: string) {
   try {
-    localStorage.removeItem(CREDS_KEY);
+    getStorage(kind)?.removeItem(key);
   } catch {
     return;
   }
-};
+}
+
+export const loadCredentials = () =>
+  read<Credentials>('session', CREDS_KEY) ?? read<Credentials>('local', CREDS_KEY);
+
+export function saveCredentials(creds: Credentials, remember: boolean) {
+  clearCredentials();
+  write(remember ? 'local' : 'session', CREDS_KEY, creds);
+}
+
+export function clearCredentials() {
+  remove('session', CREDS_KEY);
+  remove('local', CREDS_KEY);
+}
 
 export function loadChatState(idInstance: string): ChatState {
-  const saved = read<ChatState>(chatKey(idInstance));
+  const saved = read<ChatState>('local', chatKey(idInstance));
   if (!saved) return initialState;
   const messages = Object.fromEntries(
     Object.entries(saved.messages).map(([id, list]) => [
@@ -45,4 +66,4 @@ export function loadChatState(idInstance: string): ChatState {
 }
 
 export const saveChatState = (idInstance: string, state: ChatState) =>
-  write(chatKey(idInstance), state);
+  write('local', chatKey(idInstance), state);

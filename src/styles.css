@@ -492,3 +492,13 @@ a:focus-visible {
     display: inline-grid;
   }
 }
+
+.login .login__remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.login .login__remember input {
+  width: auto;
+  margin: 0;
+}

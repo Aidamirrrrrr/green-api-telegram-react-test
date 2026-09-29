@@ -13,8 +13,8 @@ function App() {
     return (
       <LoginForm
         initial={saved}
-        onLogin={(c) => {
-          saveCredentials(c);
+        onLogin={(c, remember) => {
+          saveCredentials(c, remember);
           setCreds(c);
         }}
       />

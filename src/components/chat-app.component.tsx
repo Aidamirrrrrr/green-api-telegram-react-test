@@ -8,8 +8,11 @@ import { ApiError, createClient } from 'services/green-api.service';
 import { chatReducer, sortedChats } from 'store/chat.reducer';
 import { loadChatState, saveChatState } from 'store/storage.utils';
 import type { Credentials, Message } from 'types';
+import { parseHistory } from 'utils/history.utils';
 import type { IncomingEvent } from 'utils/notification.utils';
 
+const APP_TITLE = 'Telegram-чат на GREEN-API';
+const HISTORY_LIMIT = 50;
 const WEBHOOK_WARNING =
   'В настройках инстанса задан webhookUrl, поэтому ответы не попадут в очередь. Очистите его в личном кабинете.';
 const INCOMING_DISABLED_WARNING =
@@ -25,6 +28,7 @@ function ChatApp({ creds, onLogout }: Props) {
   const [state, dispatch] = useReducer(chatReducer, creds.idInstance, loadChatState);
   const [creating, setCreating] = useState(false);
   const [warning, setWarning] = useState('');
+  const [loadedHistory, setLoadedHistory] = useState<string[]>([]);
 
   useEffect(() => {
     saveChatState(creds.idInstance, state);
@@ -41,6 +45,27 @@ function ChatApp({ creds, onLogout }: Props) {
       .catch(() => undefined);
     return () => abort.abort();
   }, [client]);
+
+  useEffect(() => {
+    const chatId = state.activeId;
+    if (!chatId || loadedHistory.includes(chatId)) return;
+
+    const abort = new AbortController();
+    client
+      .getChatHistory(chatId, HISTORY_LIMIT, abort.signal)
+      .then((items) => dispatch({ type: 'history', chatId, messages: parseHistory(items, chatId) }))
+      .catch(() => undefined)
+      .finally(() => {
+        if (!abort.signal.aborted) setLoadedHistory((ids) => [...ids, chatId]);
+      });
+    return () => abort.abort();
+  }, [client, state.activeId, loadedHistory]);
+
+  const unreadTotal = Object.values(state.chats).reduce((sum, chat) => sum + chat.unread, 0);
+
+  useEffect(() => {
+    document.title = unreadTotal > 0 ? `(${unreadTotal}) ${APP_TITLE}` : APP_TITLE;
+  }, [unreadTotal]);
 
   const onEvent = useCallback(
     (event: IncomingEvent) => dispatch({ type: 'receive', ...event }),
@@ -127,6 +152,7 @@ function ChatApp({ creds, onLogout }: Props) {
             key={active.id}
             chat={active}
             messages={state.messages[active.id] ?? []}
+            loading={!loadedHistory.includes(active.id)}
             onSend={send}
             onRetry={retry}
             onBack={() => dispatch({ type: 'select', id: null })}

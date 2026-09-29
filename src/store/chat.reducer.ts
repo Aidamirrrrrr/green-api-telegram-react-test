@@ -15,6 +15,7 @@ export type Action =
   | { type: 'sent'; chatId: string; tempId: string; id: string }
   | { type: 'failed'; chatId: string; tempId: string; error: string }
   | { type: 'retry'; chatId: string; tempId: string }
+  | { type: 'history'; chatId: string; messages: Message[] }
   | { type: 'receive'; message: Message; peer: { title?: string; phone?: string } };
 
 function upsertChat(
@@ -95,6 +96,23 @@ export function chatReducer(state: ChatState, action: Action): ChatState {
           ...state.messages,
           [action.chatId]: updateMessage(list, action.tempId, patch),
         },
+      };
+    }
+
+    case 'history': {
+      const list = state.messages[action.chatId] ?? [];
+      const known = new Set(list.map((m) => m.id));
+      const fresh = action.messages.filter((m) => !known.has(m.id));
+      if (fresh.length === 0) return state;
+
+      const merged = [...list, ...fresh].sort((a, b) => a.timestamp - b.timestamp);
+      const prev = state.chats[action.chatId];
+      return {
+        ...state,
+        chats: upsertChat(state, action.chatId, {
+          lastActivity: Math.max(prev?.lastActivity ?? 0, merged[merged.length - 1].timestamp),
+        }),
+        messages: { ...state.messages, [action.chatId]: merged },
       };
     }
 

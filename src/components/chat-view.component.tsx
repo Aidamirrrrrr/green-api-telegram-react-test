@@ -9,13 +9,14 @@ import { formatDay, formatTime, initials, isSameDay } from 'utils/format.utils';
 interface Props {
   chat: Chat;
   messages: Message[];
+  loading: boolean;
   onSend: (text: string) => void;
   onRetry: (message: Message) => void;
   onBack: () => void;
 }
 
 const MAX_MESSAGE_LENGTH = 4096;
-const HAS_FINE_POINTER = window.matchMedia('(pointer: fine)').matches;
+const HAS_FINE_POINTER = window.matchMedia?.('(pointer: fine)').matches ?? true;
 
 const STATUS_ICON: Record<MessageStatus, typeof CheckIcon> = {
   sending: ClockIcon,
@@ -23,7 +24,7 @@ const STATUS_ICON: Record<MessageStatus, typeof CheckIcon> = {
   failed: AlertIcon,
 };
 
-function ChatView({ chat, messages, onSend, onRetry, onBack }: Props) {
+function ChatView({ chat, messages, loading, onSend, onRetry, onBack }: Props) {
   const [text, setText] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -62,8 +63,12 @@ function ChatView({ chat, messages, onSend, onRetry, onBack }: Props) {
         </div>
       </header>
 
-      <div className="chat__messages">
-        {messages.length === 0 && <div className="chat__empty">Напишите первое сообщение</div>}
+      <div className="chat__messages" role="log" aria-live="polite" aria-label="Сообщения">
+        {messages.length === 0 && (
+          <div className="chat__empty">
+            {loading ? 'Загружаем историю…' : 'Напишите первое сообщение'}
+          </div>
+        )}
         {messages.map((message, index) => {
           const StatusIcon = STATUS_ICON[message.status];
           const isNewDay =

@@ -29,6 +29,15 @@ export interface InstanceSettings {
   incomingWebhook?: 'yes' | 'no';
 }
 
+export interface HistoryItem {
+  type: 'incoming' | 'outgoing';
+  idMessage: string;
+  timestamp: number;
+  typeMessage: string;
+  chatId: string;
+  textMessage?: string;
+}
+
 export interface ReceivedNotification {
   receiptId: number;
   body: unknown;
@@ -75,6 +84,9 @@ export function createClient(creds: Credentials, fetchImpl: Fetch = (...args) =>
 
     sendMessage: (chatId: string, message: string) =>
       request<{ idMessage: string }>('POST', 'sendMessage', { body: { chatId, message } }),
+
+    getChatHistory: (chatId: string, count: number, signal?: AbortSignal) =>
+      request<HistoryItem[]>('POST', 'getChatHistory', { body: { chatId, count }, signal }),
 
     receiveNotification: (signal: AbortSignal, receiveTimeout = 20) =>
       request<ReceivedNotification | null>('GET', 'receiveNotification', {

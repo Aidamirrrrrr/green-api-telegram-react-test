@@ -1,4 +1,5 @@
 import type { Message } from 'types';
+import { UNSUPPORTED_MESSAGE_TEXT } from 'utils/message.utils';
 
 export interface IncomingEvent {
   message: Message;
@@ -41,7 +42,7 @@ export function parseNotification(raw: unknown): IncomingEvent | null {
   const text =
     data?.textMessageData?.textMessage ??
     data?.extendedTextMessageData?.text ??
-    '[Вложение или сообщение неподдерживаемого типа]';
+    UNSUPPORTED_MESSAGE_TEXT;
 
   const sender = body.senderData;
   const phone = sender?.senderPhoneNumber ? String(sender.senderPhoneNumber) : undefined;

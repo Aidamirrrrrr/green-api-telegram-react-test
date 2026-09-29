@@ -76,4 +76,34 @@ describe('chatReducer', () => {
     s = chatReducer(s, { type: 'retry', chatId: 'c1', tempId: 'tmp' });
     expect(s.messages.c1[0].status).toBe('sending');
   });
+
+  it('добавляет историю без дублей и в хронологическом порядке', () => {
+    let s = chatReducer(withChat(), {
+      type: 'receive',
+      message: msg({ id: 'm2', timestamp: 2000 }),
+      peer: {},
+    });
+    s = chatReducer(s, {
+      type: 'history',
+      chatId: 'c1',
+      messages: [
+        msg({ id: 'm3', timestamp: 3000 }),
+        msg({ id: 'm1', timestamp: 1000 }),
+        msg({ id: 'm2', timestamp: 2000 }),
+      ],
+    });
+    expect(s.messages.c1.map((m) => m.id)).toEqual(['m1', 'm2', 'm3']);
+    expect(s.chats.c1.lastActivity).toBe(3000);
+  });
+
+  it('не меняет состояние, если в истории нет новых сообщений', () => {
+    const s = chatReducer(withChat(), { type: 'receive', message: msg({}), peer: {} });
+    expect(chatReducer(s, { type: 'history', chatId: 'c1', messages: [msg({})] })).toBe(s);
+  });
+
+  it('не увеличивает счётчик непрочитанных при загрузке истории', () => {
+    let s = chatReducer(withChat(), { type: 'select', id: null });
+    s = chatReducer(s, { type: 'history', chatId: 'c1', messages: [msg({ id: 'old' })] });
+    expect(s.chats.c1.unread).toBe(0);
+  });
 });

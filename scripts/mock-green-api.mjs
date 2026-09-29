@@ -11,6 +11,7 @@ const queue = [];
 const waiters = [];
 const knownChats = new Set();
 const phones = new Map();
+const history = new Map();
 const NAMES = [
   'Анна Каренина',
   'Иван Царевич',
@@ -25,7 +26,22 @@ const nowSeconds = () => Math.floor(Date.now() / 1000);
 const chatIdOf = (phone) => String(phone).slice(-8);
 const nameOf = (chatId) => NAMES[Number(chatId) % NAMES.length];
 
+function record(body) {
+  const chatId = body.senderData.chatId;
+  const item = {
+    type: body.typeWebhook === 'incomingMessageReceived' ? 'incoming' : 'outgoing',
+    idMessage: body.idMessage,
+    timestamp: body.timestamp,
+    typeMessage: 'textMessage',
+    chatId,
+    chatType: 'user',
+    textMessage: body.messageData.textMessageData.textMessage,
+  };
+  history.set(chatId, [item, ...(history.get(chatId) ?? [])]);
+}
+
 function push(body) {
+  record(body);
   const item = { receiptId: ++receiptSeq, body };
   queue.push(item);
   waiters.splice(0).forEach((wake) => wake());
@@ -123,6 +139,11 @@ const server = createServer(async (req, res) => {
       push(outgoing);
       scheduleReply(chatId, message);
       return send(res, 200, { idMessage: outgoing.idMessage });
+    }
+
+    case 'getChatHistory': {
+      const { chatId, count = 100 } = await readBody(req);
+      return send(res, 200, (history.get(chatId) ?? []).slice(0, count));
     }
 
     case 'receiveNotification': {

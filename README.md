@@ -6,7 +6,8 @@
 
 **Демо:** https://aidamirrrrrr.github.io/green-api-telegram-react-test/
 
-**Видео:** [docs/demo.mp4](docs/demo.mp4) (18 секунд, весь сценарий от входа до ответа собеседника)
+**Видео:** [docs/demo.mp4](docs/demo.mp4) (18 секунд, сценарий от входа до ответа собеседника).
+Скриншоты и видео сняты на локальном моке GREEN-API, см. раздел «Проверка без Telegram».
 
 React 19, TypeScript, Vite. Сторонних UI-библиотек нет.
 
